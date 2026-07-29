@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the new RasoiCare logo's background so there's no color
+         mismatch before Flutter's own splash screen draws. -->
+    <color name="launch_background">#FFF6F4EF</color>
+</resources>
