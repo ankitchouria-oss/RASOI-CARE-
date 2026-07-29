@@ -38,6 +38,6 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
-  uses-material-fonts: true
+  uses-material-design: true
   assets:
     - assets/logo/
