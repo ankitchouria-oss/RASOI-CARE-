@@ -19,6 +19,24 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.27.4"
+          channel: stable
+          cache: true
+
+      # Gradle reads android/local.properties (for the Flutter SDK path and
+      # Android SDK path) the moment it's invoked — even just to generate the
+      # wrapper jar below. Normally `flutter run`/`flutter build` writes this
+      # file for you on a real machine; on a fresh CI checkout it doesn't
+      # exist yet, so we write it ourselves before Gradle ever runs.
+      - name: Write android/local.properties
+        working-directory: android
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > local.properties
+          echo "sdk.dir=$ANDROID_HOME" >> local.properties
+
       # This repo's android/gradle/wrapper/gradle-wrapper.properties already
       # points at Gradle 8.9 — we just need the wrapper's jar, which is a
       # binary that can't be committed as plain text. Installing Gradle here
@@ -28,13 +46,6 @@ jobs:
       - name: Generate gradle-wrapper.jar
         working-directory: android
         run: gradle wrapper --gradle-version 8.9
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.27.4"
-          channel: stable
-          cache: true
 
       - name: Install dependencies
         run: flutter pub get
