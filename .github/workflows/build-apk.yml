@@ -39,13 +39,18 @@ jobs:
 
       # This repo's android/gradle/wrapper/gradle-wrapper.properties already
       # points at Gradle 8.9 — we just need the wrapper's jar, which is a
-      # binary that can't be committed as plain text. Installing Gradle here
-      # and running `gradle wrapper` regenerates it in one step.
-      - name: Install Gradle and regenerate the wrapper jar
+      # binary that can't be committed as plain text. We generate it in a
+      # throwaway empty folder (not our project folder) so this bootstrap
+      # Gradle never has to evaluate our build scripts — doing that with a
+      # newer system Gradle trips a Groovy/Flutter-plugin incompatibility.
+      - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Generate gradle-wrapper.jar
-        working-directory: android
-        run: gradle wrapper --gradle-version 8.9
+      - name: Generate gradle-wrapper.jar in an isolated folder
+        run: |
+          mkdir -p /tmp/wrapper-bootstrap
+          cd /tmp/wrapper-bootstrap
+          gradle wrapper --gradle-version 8.9
+          cp gradle/wrapper/gradle-wrapper.jar "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.jar"
 
       - name: Install dependencies
         run: flutter pub get
