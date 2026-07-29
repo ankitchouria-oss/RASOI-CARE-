@@ -56,6 +56,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Belt-and-braces: make sure no Gradle daemon is still running from the
+      # wrapper-generation step earlier, carrying over a bad JVM argument.
+      - name: Stop any running Gradle daemon
+        working-directory: android
+        run: ./gradlew --stop || true
+
       - name: Analyze (non-blocking — surfaces issues without failing the build)
         run: flutter analyze || true
 
@@ -68,6 +74,8 @@ jobs:
       - name: Build debug APK
         env:
           JAVA_TOOL_OPTIONS: ""
+          GRADLE_OPTS: ""
+          _JAVA_OPTIONS: ""
         run: flutter build apk --debug
 
       # Release APK: uses android/key.properties if you've added one (see the
@@ -76,6 +84,8 @@ jobs:
       - name: Build release APK
         env:
           JAVA_TOOL_OPTIONS: ""
+          GRADLE_OPTS: ""
+          _JAVA_OPTIONS: ""
         run: flutter build apk --release
 
       - name: Upload debug APK
