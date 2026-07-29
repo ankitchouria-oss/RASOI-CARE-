@@ -61,13 +61,21 @@ jobs:
 
       # Debug APK: no signing config needed, installs directly on any device
       # with "unknown sources" allowed. This is the one most people want first.
+      # The Gradle setup step earlier leaves behind a JAVA_TOOL_OPTIONS value
+      # with the quotes baked in literally (a known quirk of that action),
+      # which breaks every java invocation after it — including Flutter's own
+      # build. Clearing it here for just these two steps fixes that cleanly.
       - name: Build debug APK
+        env:
+          JAVA_TOOL_OPTIONS: ""
         run: flutter build apk --debug
 
       # Release APK: uses android/key.properties if you've added one (see the
       # main README §1b), otherwise falls back to the debug signing key so
       # this step never fails — just isn't Play-Store-ready until you sign it.
       - name: Build release APK
+        env:
+          JAVA_TOOL_OPTIONS: ""
         run: flutter build apk --release
 
       - name: Upload debug APK
