@@ -36,7 +36,9 @@ android {
             val keystoreProperties = java.util.Properties()
             val keystorePropertiesFile = rootProject.file("key.properties")
             if (keystorePropertiesFile.exists()) {
-                keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+                // Use Kotlin's File.inputStream() extension instead of java.io.FileInputStream
+                // to avoid unresolved reference issues in the Gradle Kotlin DSL.
+                keystoreProperties.load(keystorePropertiesFile.inputStream())
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
                 storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
