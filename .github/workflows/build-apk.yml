@@ -49,6 +49,7 @@ jobs:
         run: |
           mkdir -p /tmp/wrapper-bootstrap
           cd /tmp/wrapper-bootstrap
+          touch settings.gradle
           gradle wrapper --gradle-version 8.9
           cp gradle/wrapper/gradle-wrapper.jar "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.jar"
 
