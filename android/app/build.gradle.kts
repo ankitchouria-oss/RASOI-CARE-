@@ -54,12 +54,13 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
--            isMinifyEnabled = true
--            isShrinkResources = true
-+            // Temporarily disable shrinking to avoid R8 missing-class failure
-+            // while keep rules / dependency are added. Re-enable for production.
-+            isMinifyEnabled = false
-+            isShrinkResources = false
+-            // Temporarily disable shrinking to avoid R8 missing-class failure
+-            // while keep rules / dependency are added. Re-enable for production.
+-            isMinifyEnabled = false
+-            isShrinkResources = false
++            // Re-enable shrinking and minification for production builds.
++            isMinifyEnabled = true
++            isShrinkResources = true
              proguardFiles(
                  getDefaultProguardFile("proguard-android-optimize.txt"),
                  "proguard-rules.pro"
