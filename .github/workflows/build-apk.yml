@@ -26,66 +26,32 @@ jobs:
           channel: stable
           cache: true
 
-      # Gradle reads android/local.properties (for the Flutter SDK path and
-      # Android SDK path) the moment it's invoked — even just to generate the
-      # wrapper jar below. Normally `flutter run`/`flutter build` writes this
-      # file for you on a real machine; on a fresh CI checkout it doesn't
-      # exist yet, so we write it ourselves before Gradle ever runs.
-      - name: Write android/local.properties
-        working-directory: android
-        run: |
-          echo "flutter.sdk=$FLUTTER_ROOT" > local.properties
-          echo "sdk.dir=$ANDROID_HOME" >> local.properties
-
-      # This repo's android/gradle/wrapper/gradle-wrapper.properties already
-      # points at Gradle 8.9 — we just need the wrapper's jar, which is a
-      # binary that can't be committed as plain text. We generate it in a
-      # throwaway empty folder (not our project folder) so this bootstrap
-      # Gradle never has to evaluate our build scripts — doing that with a
-      # newer system Gradle trips a Groovy/Flutter-plugin incompatibility.
-      - name: Install Gradle
-        uses: gradle/actions/setup-gradle@v4
-      - name: Generate gradle-wrapper.jar in an isolated folder
-        run: |
-          mkdir -p /tmp/wrapper-bootstrap
-          cd /tmp/wrapper-bootstrap
-          touch settings.gradle
-          gradle wrapper --gradle-version 8.9
-          cp gradle/wrapper/gradle-wrapper.jar "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.jar"
+      # TEMPORARY, ONE-TIME FIX: the android/ folder in this repo was written
+      # by hand (no Flutter toolchain was available at the time), and it has
+      # drifted from what this Flutter version's Gradle plugin actually
+      # expects. Rather than keep hand-patching individual files, we let the
+      # real Flutter tooling regenerate android/ from scratch here — it only
+      # touches the android/ folder, not lib/, assets/, or pubspec.yaml.
+      #
+      # Heads up: this wipes our custom AndroidManifest.xml permissions and
+      # the custom launcher icon back to Flutter's defaults for this run.
+      # Once we confirm the build actually succeeds, the next step is to
+      # re-apply those on top of this now-correct structure and commit the
+      # result — then this step gets removed so it's not doing this on every
+      # single push.
+      - name: Regenerate the android/ platform folder
+        run: flutter create --platforms=android --org com.careplus .
 
       - name: Install dependencies
         run: flutter pub get
 
-      # Belt-and-braces: make sure no Gradle daemon is still running from the
-      # wrapper-generation step earlier, carrying over a bad JVM argument.
-      - name: Stop any running Gradle daemon
-        working-directory: android
-        run: ./gradlew --stop || true
-
       - name: Analyze (non-blocking — surfaces issues without failing the build)
         run: flutter analyze || true
 
-      # Debug APK: no signing config needed, installs directly on any device
-      # with "unknown sources" allowed. This is the one most people want first.
-      # The Gradle setup step earlier leaves behind a JAVA_TOOL_OPTIONS value
-      # with the quotes baked in literally (a known quirk of that action),
-      # which breaks every java invocation after it — including Flutter's own
-      # build. Clearing it here for just these two steps fixes that cleanly.
       - name: Build debug APK
-        env:
-          JAVA_TOOL_OPTIONS: ""
-          GRADLE_OPTS: ""
-          _JAVA_OPTIONS: ""
         run: flutter build apk --debug
 
-      # Release APK: uses android/key.properties if you've added one (see the
-      # main README §1b), otherwise falls back to the debug signing key so
-      # this step never fails — just isn't Play-Store-ready until you sign it.
       - name: Build release APK
-        env:
-          JAVA_TOOL_OPTIONS: ""
-          GRADLE_OPTS: ""
-          _JAVA_OPTIONS: ""
         run: flutter build apk --release
 
       - name: Upload debug APK
