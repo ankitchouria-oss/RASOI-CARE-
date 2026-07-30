@@ -43,12 +43,27 @@ jobs:
         run: flutter create --platforms=android --org com.careplus .
 
       # firebase_auth requires minSdk 23; Flutter's freshly-generated default
-      # is 21. Patching this one line back in after the regenerate above.
+      # is 21. Patching this reliably for both Kotlin DSL and Groovy templates.
       - name: Bump minSdk to 23 (required by firebase_auth)
         run: |
-          sed -i -E 's/minSdk[[:space:]]*=[[:space:]]*flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
-          echo "Resulting minSdk line:"
-          grep minSdk android/app/build.gradle.kts
+          set -euo pipefail
+          echo "Patching android/app build files to set minSdk = 23"
+          # Handle Kotlin DSL (build.gradle.kts) and Groovy (build.gradle) variants.
+          for f in android/app/build.gradle android/app/build.gradle.kts; do
+            if [ -f "$f" ]; then
+              echo "Patching $f"
+              # Replace common forms:
+              #  - minSdkVersion 21
+              #  - minSdk = flutter.minSdkVersion
+              #  - minSdk = 21
+              sed -i -E 's/minSdkVersion[[:space:]]+[0-9]+/minSdkVersion 23/g' "$f" || true
+              sed -i -E 's/minSdk[[:space:]]*=[[:space:]]*flutter\.[a-zA-Z0-9_]+/minSdk = 23/g' "$f" || true
+              sed -i -E 's/minSdk[[:space:]]*=[[:space:]]*[0-9]+/minSdk = 23/g' "$f" || true
+              sed -n '1,120p' "$f"
+            fi
+          done
+          echo "Done patching. Current minSdk lines:"
+          grep -E "minSdkVersion|minSdk" -R android/app || true
 
       - name: Install dependencies
         run: flutter pub get
