@@ -42,6 +42,14 @@ jobs:
       - name: Regenerate the android/ platform folder
         run: flutter create --platforms=android --org com.careplus .
 
+      # firebase_auth requires minSdk 23; Flutter's freshly-generated default
+      # is 21. Patching this one line back in after the regenerate above.
+      - name: Bump minSdk to 23 (required by firebase_auth)
+        run: |
+          sed -i -E 's/minSdk[[:space:]]*=[[:space:]]*flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
+          echo "Resulting minSdk line:"
+          grep minSdk android/app/build.gradle.kts
+
       - name: Install dependencies
         run: flutter pub get
 
