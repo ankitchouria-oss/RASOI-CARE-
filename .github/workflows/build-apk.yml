@@ -43,27 +43,26 @@ jobs:
         run: flutter create --platforms=android --org com.careplus .
 
       # firebase_auth requires minSdk 23; Flutter's freshly-generated default
-      # is 21. Patching this reliably for both Kotlin DSL and Groovy templates.
+      # is 21. Patching this one line back in after the regenerate above.
       - name: Bump minSdk to 23 (required by firebase_auth)
         run: |
-          set -euo pipefail
-          echo "Patching android/app build files to set minSdk = 23"
-          # Handle Kotlin DSL (build.gradle.kts) and Groovy (build.gradle) variants.
-          for f in android/app/build.gradle android/app/build.gradle.kts; do
-            if [ -f "$f" ]; then
-              echo "Patching $f"
-              # Replace common forms:
-              #  - minSdkVersion 21
-              #  - minSdk = flutter.minSdkVersion
-              #  - minSdk = 21
-              sed -i -E 's/minSdkVersion[[:space:]]+[0-9]+/minSdkVersion 23/g' "$f" || true
-              sed -i -E 's/minSdk[[:space:]]*=[[:space:]]*flutter\.[a-zA-Z0-9_]+/minSdk = 23/g' "$f" || true
-              sed -i -E 's/minSdk[[:space:]]*=[[:space:]]*[0-9]+/minSdk = 23/g' "$f" || true
-              sed -n '1,120p' "$f"
-            fi
-          done
-          echo "Done patching. Current minSdk lines:"
-          grep -E "minSdkVersion|minSdk" -R android/app || true
+          sed -i -E 's/minSdk[[:space:]]*=[[:space:]]*flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
+          echo "Resulting minSdk line:"
+          grep minSdk android/app/build.gradle.kts
+
+      # R8 (used for release minification) chokes on Flutter's own deferred-
+      # components support code, which references Play Core classes we don't
+      # actually use (we don't do dynamic feature delivery). This is a common,
+      # well-documented Flutter+R8 issue — the fix is telling R8 not to worry
+      # about those specific missing classes.
+      - name: Add ProGuard rules for missing Play Core classes
+        run: |
+          cat >> android/app/proguard-rules.pro << 'EOF'
+
+          # Flutter's deferred-components support references Play Core
+          # classes we don't use (no dynamic feature delivery in this app).
+          -dontwarn com.google.android.play.core.**
+          EOF
 
       - name: Install dependencies
         run: flutter pub get
@@ -88,3 +87,4 @@ jobs:
         with:
           name: care-plus-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          
