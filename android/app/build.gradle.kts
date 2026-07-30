@@ -67,3 +67,9 @@ android {
 flutter {
     source = "../.."
 }
+
+// Play Core dependency needed so R8 can resolve com.google.android.play.core.*
+// referenced by Flutter's PlayStoreDeferredComponentManager.
+dependencies {
+    implementation("com.google.android.play:core:1.10.3")
+}
