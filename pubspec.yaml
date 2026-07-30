@@ -13,6 +13,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  cupertino_icons: ^1.0.5
   flutter_riverpod: ^2.6.1     # MVVM state, per the build spec
   go_router: ^14.6.2           # declarative routes + role/auth redirect
   google_fonts: ^6.2.1         # Fraunces · Plus Jakarta Sans · IBM Plex Mono
