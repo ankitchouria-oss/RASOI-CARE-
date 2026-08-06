@@ -1,6 +1,9 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")
     // The Flutter Gradle Plugin must come after Android and Kotlin.
 }
 
@@ -32,10 +35,12 @@ android {
             // Wired up in §2 of the Android README — reads key.properties if
             // present, otherwise release builds fall back to the debug key
             // below so `flutter build apk --release` still succeeds locally.
-            val keystoreProperties = java.util.Properties()
+            val keystoreProperties = Properties()
             val keystorePropertiesFile = rootProject.file("key.properties")
             if (keystorePropertiesFile.exists()) {
-                keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+                // Use Kotlin's File.inputStream() extension instead of java.io.FileInputStream
+                // to avoid unresolved reference issues in the Gradle Kotlin DSL.
+                keystoreProperties.load(keystorePropertiesFile.inputStream())
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
                 storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
@@ -54,17 +59,13 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
--            // Temporarily disable shrinking to avoid R8 missing-class failure
--            // while keep rules / dependency are added. Re-enable for production.
--            isMinifyEnabled = false
--            isShrinkResources = false
-+            // Re-enable shrinking and minification for production builds.
-+            isMinifyEnabled = true
-+            isShrinkResources = true
-             proguardFiles(
-                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                 "proguard-rules.pro"
-             )
+            // Re-enable shrinking and minification for production builds.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
@@ -73,8 +74,9 @@ flutter {
     source = "../.."
 }
 
-// Play Core dependency needed so R8 can resolve com.google.android.play.core.*
-// referenced by Flutter's PlayStoreDeferredComponentManager.
-dependencies {
-    implementation("com.google.android.play:core:1.10.3")
-}
+// No explicit Play Core dependency: the legacy com.google.android.play:core
+// artifact duplicates classes now shipped in core-common (pulled in
+// transitively by google_sign_in_android), which breaks
+// checkDebugDuplicateClasses. R8's resolution of the optional
+// PlayStoreDeferredComponentManager references is handled instead by the
+// -dontwarn/-keep rules in proguard-rules.pro.

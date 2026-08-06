@@ -14,9 +14,10 @@ android/local.properties
 android/key.properties
 android/**/build/
 android/.gradle/
-android/gradle-wrapper.jar
+android/**/gradle-wrapper.jar
 android/captures/
 android/gradlew.log
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 *.jks
 *.keystore
 
