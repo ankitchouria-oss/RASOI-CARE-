@@ -18,12 +18,20 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Timer? _navTimer;
+
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(milliseconds: 2100), () {
+    _navTimer = Timer(const Duration(milliseconds: 2100), () {
       if (mounted) context.go('/onboarding');
     });
+  }
+
+  @override
+  void dispose() {
+    _navTimer?.cancel();
+    super.dispose();
   }
 
   @override
