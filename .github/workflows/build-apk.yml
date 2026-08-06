@@ -1,10 +1,11 @@
 name: Build APK
 
-# Runs on every push, and can also be triggered manually from the Actions tab
-# (Actions → Build APK → Run workflow) without needing a new commit.
+# Runs on every push and pull request, and can also be triggered manually
+# from the Actions tab (Actions → Build APK → Run workflow).
 on:
   push:
     branches: [main, master]
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -26,49 +27,14 @@ jobs:
           channel: stable
           cache: true
 
-      # TEMPORARY, ONE-TIME FIX: the android/ folder in this repo was written
-      # by hand (no Flutter toolchain was available at the time), and it has
-      # drifted from what this Flutter version's Gradle plugin actually
-      # expects. Rather than keep hand-patching individual files, we let the
-      # real Flutter tooling regenerate android/ from scratch here — it only
-      # touches the android/ folder, not lib/, assets/, or pubspec.yaml.
-      #
-      # Heads up: this wipes our custom AndroidManifest.xml permissions and
-      # the custom launcher icon back to Flutter's defaults for this run.
-      # Once we confirm the build actually succeeds, the next step is to
-      # re-apply those on top of this now-correct structure and commit the
-      # result — then this step gets removed so it's not doing this on every
-      # single push.
-      - name: Regenerate the android/ platform folder
-        run: flutter create --platforms=android --org com.careplus .
-
-      # firebase_auth requires minSdk 23; Flutter's freshly-generated default
-      # is 21. Patching this one line back in after the regenerate above.
-      - name: Bump minSdk to 23 (required by firebase_auth)
-        run: |
-          sed -i -E 's/minSdk[[:space:]]*=[[:space:]]*flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
-          echo "Resulting minSdk line:"
-          grep minSdk android/app/build.gradle.kts
-
-      # R8 (used for release minification) chokes on Flutter's own deferred-
-      # components support code, which references Play Core classes we don't
-      # actually use (we don't do dynamic feature delivery). This is a common,
-      # well-documented Flutter+R8 issue — the fix is telling R8 not to worry
-      # about those specific missing classes.
-      - name: Add ProGuard rules for missing Play Core classes
-        run: |
-          cat >> android/app/proguard-rules.pro << 'EOF'
-
-          # Flutter's deferred-components support references Play Core
-          # classes we don't use (no dynamic feature delivery in this app).
-          -dontwarn com.google.android.play.core.**
-          EOF
-
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze (non-blocking — surfaces issues without failing the build)
-        run: flutter analyze || true
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
 
       - name: Build debug APK
         run: flutter build apk --debug
@@ -87,4 +53,3 @@ jobs:
         with:
           name: care-plus-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          
