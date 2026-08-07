@@ -137,6 +137,14 @@ class TimelineStep {
 
 enum StepState { done, now, upcoming }
 
+/// Which surface a signed-in person is allowed to reach: the ordinary
+/// customer app, the technician app, or the admin console. Resolved from the
+/// signed-in phone number today (see [CareRepository.roleForPhone]) — once a
+/// real backend is wired in, this becomes a Firestore custom claim or user
+/// document field instead, but every screen that checks role keeps working
+/// unchanged since they only ever see the enum.
+enum UserRole { customer, technician, admin }
+
 /// Indian-locale currency, from paise. `Money.rupees(89900) == '₹899'`.
 abstract final class Money {
   static final _fmt = NumberFormat.currency(
@@ -262,7 +270,8 @@ enum LineTone { neutral, success }
 
 /// One invoice line for the technician's close-job screen.
 class InvoiceLine {
-  const InvoiceLine(this.label, this.amountPaise, {this.tone = LineTone.neutral});
+  const InvoiceLine(this.label, this.amountPaise,
+      {this.tone = LineTone.neutral});
   final String label;
   final int amountPaise;
   final LineTone tone;

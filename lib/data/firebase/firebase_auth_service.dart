@@ -16,6 +16,9 @@ class FirebaseAuthService implements AuthService {
   bool get isSignedIn => _auth.currentUser != null;
 
   @override
+  String? get currentPhone => _auth.currentUser?.phoneNumber;
+
+  @override
   Future<OtpSent> sendOtp(String e164Phone) {
     final completer = Completer<OtpSent>();
     _auth.verifyPhoneNumber(
@@ -28,7 +31,9 @@ class FirebaseAuthService implements AuthService {
       verificationCompleted: (credential) async {
         try {
           await _auth.signInWithCredential(credential);
-          if (!completer.isCompleted) completer.complete(const OtpSent('auto-verified'));
+          if (!completer.isCompleted) {
+            completer.complete(const OtpSent('auto-verified'));
+          }
         } catch (e) {
           if (!completer.isCompleted) {
             completer.completeError(AuthException(_friendly(e)));
@@ -49,7 +54,8 @@ class FirebaseAuthService implements AuthService {
   }
 
   @override
-  Future<void> verifyOtp({required String verificationId, required String smsCode}) async {
+  Future<void> verifyOtp(
+      {required String verificationId, required String smsCode}) async {
     if (verificationId == 'auto-verified') return; // already signed in above
     try {
       final credential = PhoneAuthProvider.credential(
@@ -98,9 +104,12 @@ class FirebaseAuthService implements AuthService {
   String _friendly(Object e) {
     if (e is FirebaseAuthException) {
       return switch (e.code) {
-        'invalid-verification-code' => 'That code doesn\'t match. Check and try again.',
-        'invalid-phone-number' => 'That doesn\'t look like a valid phone number.',
-        'too-many-requests' => 'Too many attempts — wait a bit before retrying.',
+        'invalid-verification-code' =>
+          'That code doesn\'t match. Check and try again.',
+        'invalid-phone-number' =>
+          'That doesn\'t look like a valid phone number.',
+        'too-many-requests' =>
+          'Too many attempts — wait a bit before retrying.',
         'session-expired' => 'That code expired. Request a new one.',
         'account-exists-with-different-credential' =>
           'That email is already linked to a different sign-in method.',

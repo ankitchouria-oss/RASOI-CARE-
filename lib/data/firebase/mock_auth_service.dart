@@ -7,6 +7,7 @@ import 'auth_service.dart';
 class MockAuthService implements AuthService {
   static const demoCode = '4402';
   bool _signedIn = false;
+  String? _phone;
 
   @override
   bool get isLive => false;
@@ -15,16 +16,22 @@ class MockAuthService implements AuthService {
   bool get isSignedIn => _signedIn;
 
   @override
+  String? get currentPhone => _signedIn ? _phone : null;
+
+  @override
   Future<OtpSent> sendOtp(String e164Phone) async {
     await Future<void>.delayed(const Duration(milliseconds: 400));
+    _phone = e164Phone;
     return const OtpSent('mock-verification-id');
   }
 
   @override
-  Future<void> verifyOtp({required String verificationId, required String smsCode}) async {
+  Future<void> verifyOtp(
+      {required String verificationId, required String smsCode}) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     if (smsCode != demoCode) {
-      throw const AuthException('That code doesn\'t match. Check and try again.');
+      throw const AuthException(
+          'That code doesn\'t match. Check and try again.');
     }
     _signedIn = true;
   }
@@ -35,6 +42,8 @@ class MockAuthService implements AuthService {
     // so the two stay consistent.
     await Future<void>.delayed(const Duration(milliseconds: 500));
     _signedIn = true;
+    _phone ??=
+        '+91-google-signin'; // no phone number from Google — stays a customer
     return const GoogleProfile(
       displayName: 'Rohan Deshpande',
       email: 'rohan.deshpande@gmail.com',
@@ -42,5 +51,8 @@ class MockAuthService implements AuthService {
   }
 
   @override
-  Future<void> signOut() async => _signedIn = false;
+  Future<void> signOut() async {
+    _signedIn = false;
+    _phone = null;
+  }
 }

@@ -26,12 +26,18 @@ abstract interface class AuthService {
   /// Whether a user is currently signed in (checked once at app start).
   bool get isSignedIn;
 
+  /// The signed-in person's phone number in E.164 form, or null if signed
+  /// out (or signed in via Google, which carries no phone number). This is
+  /// what role resolution keys off — see [CareRepository.roleForPhone].
+  String? get currentPhone;
+
   /// Sends the OTP. Throws an [AuthException] on failure.
   Future<OtpSent> sendOtp(String e164Phone);
 
   /// Verifies the code against the most recent [OtpSent.verificationId].
   /// Throws an [AuthException] if it doesn't match.
-  Future<void> verifyOtp({required String verificationId, required String smsCode});
+  Future<void> verifyOtp(
+      {required String verificationId, required String smsCode});
 
   /// Google OAuth sign-in. Throws an [AuthException] if the person cancels
   /// the picker or the sign-in otherwise fails.
