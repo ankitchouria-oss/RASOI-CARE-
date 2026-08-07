@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/firebase/auth_service.dart';
 import '../data/firebase/firebase_auth_service.dart';
 import '../data/firebase/mock_auth_service.dart';
+import '../data/models.dart';
+import 'providers.dart';
 
 /// Picks the real service if `Firebase.initializeApp()` succeeded in
 /// main.dart, otherwise the mock. This is the one line you'd ever need to
@@ -12,6 +14,17 @@ import '../data/firebase/mock_auth_service.dart';
 final authServiceProvider = Provider<AuthService>(
   (ref) => Firebase.apps.isEmpty ? MockAuthService() : FirebaseAuthService(),
 );
+
+/// What the signed-in person is allowed to see — customer, technician, or
+/// admin. Re-read on every access rather than cached, since the auth
+/// services don't currently expose a sign-in-state stream; screens that
+/// gate on this should re-check it (e.g. in `build`) rather than capture it
+/// once. Defaults to [UserRole.customer] when signed out.
+final currentUserRoleProvider = Provider<UserRole>((ref) {
+  final phone = ref.watch(authServiceProvider).currentPhone;
+  if (phone == null) return UserRole.customer;
+  return ref.watch(repositoryProvider).roleForPhone(phone);
+});
 
 class AuthFlowState {
   const AuthFlowState({
@@ -57,10 +70,13 @@ class AuthFlowVM extends Notifier<AuthFlowState> {
   bool get isMock => !ref.read(authServiceProvider).isLive;
 
   Future<bool> sendOtp(String tenDigitPhone) async {
-    state = state.copyWith(sending: true, clearError: true, phone: tenDigitPhone);
+    state =
+        state.copyWith(sending: true, clearError: true, phone: tenDigitPhone);
     try {
-      final result = await ref.read(authServiceProvider).sendOtp('+91$tenDigitPhone');
-      state = state.copyWith(sending: false, verificationId: result.verificationId);
+      final result =
+          await ref.read(authServiceProvider).sendOtp('+91$tenDigitPhone');
+      state =
+          state.copyWith(sending: false, verificationId: result.verificationId);
       return true;
     } on AuthException catch (e) {
       state = state.copyWith(sending: false, error: e.message);
@@ -80,14 +96,17 @@ class AuthFlowVM extends Notifier<AuthFlowState> {
     }
     state = state.copyWith(verifying: true, clearError: true);
     try {
-      await ref.read(authServiceProvider).verifyOtp(verificationId: vid, smsCode: code);
+      await ref
+          .read(authServiceProvider)
+          .verifyOtp(verificationId: vid, smsCode: code);
       state = state.copyWith(verifying: false);
       return true;
     } on AuthException catch (e) {
       state = state.copyWith(verifying: false, error: e.message);
       return false;
     } catch (_) {
-      state = state.copyWith(verifying: false, error: 'Verification failed. Try again.');
+      state = state.copyWith(
+          verifying: false, error: 'Verification failed. Try again.');
       return false;
     }
   }

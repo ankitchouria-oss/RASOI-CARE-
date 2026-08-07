@@ -34,6 +34,12 @@ abstract interface class CareRepository {
   List<AdminBooking> adminBookings();
   List<AdminTeamMember> adminTeam();
   List<AdminStockItem> adminStock();
+
+  /// Resolves what a signed-in phone number is allowed to see. Everyone not
+  /// on the staff allowlist is a plain customer — see [MockRepository] for
+  /// the demo numbers. A FirestoreRepository would look this up from a
+  /// custom claim or a `staff/{uid}` document instead.
+  UserRole roleForPhone(String? e164Phone);
 }
 
 class MockRepository implements CareRepository {
@@ -351,11 +357,13 @@ class MockRepository implements CareRepository {
 
   @override
   List<PaymentMethod> paymentMethods() => const [
-        PaymentMethod('upi', 'UPI — GPay, PhonePe, Paytm', 'Instant · no fee', '▲'),
+        PaymentMethod(
+            'upi', 'UPI — GPay, PhonePe, Paytm', 'Instant · no fee', '▲'),
         PaymentMethod('card', 'HDFC •••• 4471', 'Visa credit', '▭'),
         PaymentMethod('wallet', 'Rasoi Care wallet', '₹1,240 available', '◍'),
         PaymentMethod('netbank', 'Net banking', '12 banks', '▤'),
-        PaymentMethod('cod', 'Pay after the visit', 'Cash or UPI to technician', '₹'),
+        PaymentMethod(
+            'cod', 'Pay after the visit', 'Cash or UPI to technician', '₹'),
       ];
 
   @override
@@ -526,10 +534,16 @@ class MockRepository implements CareRepository {
         technicianUtilisationPct: 87,
         firstTimeFixPct: 91,
         attention: [
-          AttentionItem('CP-2502', 'Unassigned · 22 min',
-              'Microwave not heating · Indira Nagar · slot 2:00 pm', LineTone.neutral),
-          AttentionItem('CP-2377', 'Complaint · rework',
-              'Hob igniter failed again in 6 days · warranty claim', LineTone.neutral),
+          AttentionItem(
+              'CP-2502',
+              'Unassigned · 22 min',
+              'Microwave not heating · Indira Nagar · slot 2:00 pm',
+              LineTone.neutral),
+          AttentionItem(
+              'CP-2377',
+              'Complaint · rework',
+              'Hob igniter failed again in 6 days · warranty claim',
+              LineTone.neutral),
           AttentionItem('CP-2418', 'Refund pending · ₹1,299',
               'Cancelled after dispatch · 3 days old', LineTone.neutral),
         ],
@@ -643,4 +657,15 @@ class MockRepository implements CareRepository {
             reorderAt: 30,
             low: false),
       ];
+
+  // Demo staff allowlist — stand-in for a real backend's custom claims.
+  // Any other signed-in number is a plain customer.
+  static const _staffRoles = <String, UserRole>{
+    '+919000000001': UserRole.admin,
+    '+919000000002': UserRole.technician,
+  };
+
+  @override
+  UserRole roleForPhone(String? e164Phone) =>
+      _staffRoles[e164Phone] ?? UserRole.customer;
 }

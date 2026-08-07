@@ -10,7 +10,8 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
   } catch (e) {
     // Expected until you run `flutterfire configure` with a real project —
     // see lib/firebase_options.dart. The app falls back to MockAuthService
@@ -26,6 +27,7 @@ class CarePlusApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(themeModeProvider);
+    final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'Rasoi Care',
       debugShowCheckedModeBanner: false,
